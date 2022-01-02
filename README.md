@@ -6,8 +6,6 @@ Super Pyxelate converts images to 8-bit pixel art. It is an improved, faster imp
 
 *Super Pyxelate is currently in beta.*
 
-*Special thanks to [sedthh](https://github.com/sedthh/pyxelate).*
-
 ![Pixel art corgi](/examples/p_corgi.png)
 
 # Usage
@@ -123,7 +121,7 @@ Fitting existing palettes on different images will also have different results f
 
 # Installation
 ```
-pip install git+https://github.com/justinjohn0306/pyxelate-video-support.git --upgrade
+pip install git+https://github.com/sedthh/pyxelate.git --upgrade
 ```
 
 Pyxelate relies on the following libraries to run (included in *requirements.txt*):
