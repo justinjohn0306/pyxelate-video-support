@@ -121,7 +121,7 @@ Fitting existing palettes on different images will also have different results f
 
 # Installation
 ```
-pip install git+https://github.com/sedthh/pyxelate.git --upgrade
+pip install git+https://github.com/justinjohn0306/pyxelate-video-support.git --upgrade
 ```
 
 Pyxelate relies on the following libraries to run (included in *requirements.txt*):
