@@ -9,14 +9,14 @@ from typing import List, Optional, Set, Tuple, Union
 import numpy as np
 from skimage import io
 try:
-    from . import Pyx, Pal, images_to_parts, parts_to_images
+    from . import Pyx, Pal, Vid
 except ImportError:
     try:
-        from pyxelate import Pyx, Pal, images_to_parts, parts_to_images
+        from pyxelate import Pyx, Pal, Vid
     except ImportError:
         from pal import Pal
         from pyx import Pyx
-        from vid import images_to_parts, parts_to_images
+        from vid import Vid
     
 
 def get_model(args: argparse.Namespace):
@@ -31,7 +31,6 @@ def get_model(args: argparse.Namespace):
         sobel=args.sobel,
         alpha=args.alpha,
         svd=not args.nosvd,
-        boost=not args.noboost,
     )
 
 def convert(args: argparse.Namespace):
@@ -42,13 +41,14 @@ def convert(args: argparse.Namespace):
     io.imsave(args.OUTFILE, new_image)
     
 def convert_sequence(args: argparse.Namespace):
+    # get files from folder in order
     p = Path(args.INFILE)
     files = str(p.name)
     assert "%d" in files, "Input filename for sequences must contain %d to denote ordering!"
     candidates = [str(c.name) for c in list(p.parent.resolve().glob(f"*{p.suffix}"))]
     images, names, i = [], [], 0
     while True:
-        check = [bool(re.search(r'' + files.replace("%d", f"[0]*?{i}"), c)) for c in candidates]
+        check = [bool(re.search(r'\b' + files.replace("%d", f"[0]*?{i}") + r'\b', c)) for c in candidates]
         if np.any(check):
             name = p.parent.resolve() / candidates[np.argmax(check)]
             names.append(name)
@@ -67,8 +67,7 @@ def convert_sequence(args: argparse.Namespace):
     files = str(p.name)
     assert "%d" in files, "Output filename for sequences must contain %d to denote ordering!"
     # generate a new image sequence based on differences between them
-    new_images, new_keys = [], []
-    for i, (image, key) in enumerate(images_to_parts(images, square=args.sobel, keyframe=args.keyframe, sensitivity=args.sensitivity)):
+    for i, (image, key) in enumerate(Vid(images, pad=args.pad, sobel=args.sobel, keyframe=args.keyframe, sensitivity=args.sensitivity)):
         if i == 0 or (key and args.refit):
             if not args.quiet:
                 print(f"Fitting model on keyframe '{names[i]}'")    
@@ -76,27 +75,13 @@ def convert_sequence(args: argparse.Namespace):
             pyx.fit(image)
         # run the algorithm on the difference only
         image = pyx.transform(image)
-        # save the pyxelated image part for later
-        new_images.append(image)
-        new_keys.append(key)
-        if args.partial:
-            # save partial results
-            file = str(p.parent / files.replace("%d", str(i)))
-            io.imsave(file, image)
-        if not args.quiet and i % five_percent == 0:
-            print(f"Finished {i+1} out of {all} ({round((i + 1) / all * 100)}%)")    
-            
-    if not args.quiet:
-        print("Recreating pyxelated images...")
-    # put the pyxelated parts back together
-    for i, image in enumerate(parts_to_images(new_images, new_keys)):
-        # overwrite the files again
+        # save the pyxelated image
         file = str(p.parent / files.replace("%d", str(i)))
         io.imsave(file, image)
         if not args.quiet and i % five_percent == 0:
             print(f"Finished {i+1} out of {all} ({round((i + 1) / all * 100)}%)")    
 
-    
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("INFILE", type=str, help="Input image filename. For sequence of images use: folder/img_%%d.png")
@@ -140,13 +125,7 @@ def main():
         "transformation for better results. In case you want ignore "
         "this step, use --nosvd.",
     )
-    parser.add_argument(
-        "--noboost",
-        action="store_true",
-        help="By default, adjust contrast and apply preprocessing on the image before "
-        "transformation for better results. In case you see unwanted dark "
-        "pixels in your image, use --noboost.",
-    )
+    
     # for animations
     parser.add_argument(
         "--sequence",
@@ -163,19 +142,19 @@ def main():
         "Only works for animations with --sequence."
     )
     parser.add_argument(
-        "--partial",
-        action="store_true",
-        help="Save partial results (to OUTFILE) while converting sequences. "
-        "This will save converted image fragments with transparency. These temporary results will"
-        "be overwritten after the converting process has finished running. A good sanity check. "
+        "--pad", 
+        type=int, 
+        default=0,
+        help="Cut black bars from the top and the bottom of the image sequence before conversion. "
+        "Default value is 0 (0 lines will be removed from both top and bottom). "
         "Only works for animations with --sequence."
     )
     parser.add_argument(
         "--keyframe", 
         type=float, 
-        default=.66,
-        help="Percentage (0. - 1.) of image difference needed to be considered a new keyframe."
-        "Default value is 0.66. Only works for animations with --sequence."
+        default=.33,
+        help="Percentage (0. - 1.) of average image difference needed to be considered a new keyframe."
+        "Default value is 0.33. Only works for animations with --sequence."
     )
     parser.add_argument(
         "--sensitivity", 
@@ -188,8 +167,11 @@ def main():
     parser.add_argument("--quiet", action="store_true", help="Suppress logging output.")
     args = parser.parse_args()
 
-    if args.dither not in ("none", "naive") and args.sequence:
-        raise ValueError(f"Only 'naive' dithering is available when converting a sequence of images! Please use '--dither naive' instead of '--dither {args.dither}'")
+    if args.sequence:
+        if args.dither not in ("none", "naive"):
+            raise ValueError(f"Only 'naive' dithering is available when converting a sequence of images! Please use '--dither naive' instead of '--dither {args.dither}'")
+        if not args.nosvd and not args.quiet:
+            print(f"TIP: consider using --nosvd with --sequence for increased performance")
          
     # The --palette arg can be an integer or a palette name.
     try:
