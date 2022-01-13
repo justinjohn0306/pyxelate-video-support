@@ -33,44 +33,7 @@ conda install -c conda-forge ffmpeg
 conda activate pyxelate
 ```
 
-# Usage
-I've implemented so you can run it easily on both images or videos locally. If you want to utilize `pyx()` more, feel free to just edit the codes away.
-## Image
-To run through pyxelate on a single image:
-```
-python image.py --input INPUT_IMAGE_PATH --palette INTEGERS --downsample_by INTEGERS
-```
-- `--input`: The input image file path
-- `--palette`: find this many colors. Default is 7, so it'll find 7 colors. 
-- `--downsample_by`: new image will be this many times smaller of the original in size. Default is 14, so it'll be 1/14th smaller.
-To use the default values, you don't have to specify the arguments in the command. 
 
-eg. 
-```
-python image.py --input input/china6.jpg
-```
-Result would be in the `output` folder.
-
-## Video
-To run through pyxelate on a single video:
-```
-python video.py --input INPUT_VIDEO_PATH --palette INTEGERS --downsample_by INTEGERS
-```
-See above for arguments explanations. 
-
-Video will use the very first frame's palette for the rest of the video. This is to prevent new palette being created, because it'll look horrible with flickering. 
-
-eg.
-```
-python video.py --input input/csgo.mp4 --palette 20 --downsample_by 6
-```
-Result would be in the `output` folder.
-
-To view the video in a "pixel art" style, I suggest using this video player called [MPC-HC](https://github.com/clsid2/mpc-hc/releases/tag/1.9.17).
-
-To perform the "Integer Scaling" effect, you have to go settings “View” → “Options” → “Playback” → “Output” → “Resizer” → “Nearest neighbor”. The setting is available when using rendering engines “Video Mixing Renderer 9 (renderless)”, “Enhanced Video Renderer (custom presenter)” and “Sync Renderer”. A rendering engine can be selected via the “DirectShow Video” dropdown on the same settings’ page. [*credit*](https://tanalin.com/en/articles/integer-scaling/#h-partial-viewers)
-
-My implementation ends here.
 
 # Usage
 
